@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BR2032">
+<meta name="theme-color" content="#0F6E56">
+<title>Brooks Range 2032</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<style>
+  :root {
+    --green: #0F6E56;
+    --green-light: #1D9E75;
+    --green-pale: #E1F5EE;
+    --green-mid: #5DCAA5;
+    --blue: #185FA5;
+    --blue-pale: #E6F1FB;
+    --purple: #534AB7;
+    --purple-pale: #EEEDFE;
+    --amber: #854F0B;
+    --amber-pale: #FAEEDA;
+    --gray: #5F5E5A;
+    --gray-pale: #F1EFE8;
+    --red: #A32D2D;
+    --red-pale: #FCEBEB;
+    --bg: #ffffff;
+    --bg2: #f7f7f5;
+    --bg3: #f0efe9;
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.2);
+    --radius: 12px;
+    --safe-top: env(safe-area-inset-top);
+    --safe-bottom: env(safe-area-inset-bottom);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --bg2: #242420;
+      --bg3: #2c2c28;
+      --text: #f0efe9;
+      --text2: #a0a09a;
+      --border: rgba(255,255,255,0.12);
+      --border2: rgba(255,255,255,0.22);
+      --green-pale: #04342C;
+      --blue-pale: #042C53;
+      --purple-pale: #26215C;
+      --amber-pale: #412402;
+      --gray-pale: #2C2C2A;
+      --red-pale: #501313;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; }
+
+  /* App shell */
+  .header {
+    background: var(--green);
+    color: white;
+    padding: calc(var(--safe-top) + 16px) 16px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-title { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 13px; opacity: 0.75; margin-top: 1px; }
+  .readiness-badge { text-align: right; }
+  .readiness-num { font-size: 28px; font-weight: 600; line-height: 1; }
+  .readiness-lbl { font-size: 10px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Tab bar */
+  .tabbar {
+    background: var(--bg);
+    border-top: 0.5px solid var(--border);
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    padding-bottom: var(--safe-bottom);
+    z-index: 10;
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0 6px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 10px;
+    gap: 3px;
+    transition: color .15s;
+  }
+  .tab.active { color: var(--green); }
+  .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Content */
+  .content { padding: 16px 16px calc(80px + var(--safe-bottom)); }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Cards */
+  .card {
+    background: var(--bg);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .card:last-child { margin-bottom: 0; }
+  .card-title { font-size: 15px; font-weight: 600; }
+  .card-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* Countdown */
+  .countdown {
+    background: var(--green);
+    color: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .countdown-num { font-size: 48px; font-weight: 700; letter-spacing: -2px; line-height: 1; }
+  .countdown-label { font-size: 13px; opacity: 0.8; margin-top: 6px; }
+
+  /* Progress bars */
+  .prog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .prog-row:last-of-type { margin-bottom: 0; }
+  .prog-label { font-size: 12px; color: var(--text2); width: 46px; flex-shrink: 0; }
+  .prog-bar { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+  .prog-fill.fitness { background: var(--green-light); }
+  .prog-fill.gear { background: var(--blue); }
+  .prog-fill.skills { background: var(--purple); }
+  .prog-pct { font-size: 11px; color: var(--text2); min-width: 28px; text-align: right; }
+
+  /* Readiness circle */
+  .readiness-row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border); }
+  .readiness-big { font-size: 26px; font-weight: 700; }
+  .readiness-sub { font-size: 11px; color: var(--text2); }
+  .gates-text { font-size: 11px; color: var(--text2); max-width: 55%; text-align: right; line-height: 1.4; }
+
+  /* Badges */
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+  .badge-future { background: var(--gray-pale); color: var(--gray); }
+  .badge-planning { background: var(--amber-pale); color: var(--amber); }
+  .badge-active { background: #FAECE7; color: #993C1D; }
+  .badge-trained { background: var(--blue-pale); color: var(--blue); }
+  .badge-complete { background: var(--purple-pale); color: var(--purple); }
+
+  /* Mission header */
+  .mission-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .edit-btn { background: transparent; border: none; cursor: pointer; font-size: 18px; color: var(--text2); padding: 0 0 0 8px; line-height: 1; }
+
+  /* Team */
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--purple-pale); color: var(--purple); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
+  .team-row { display: flex; align-items: center; gap: 12px; }
+  .team-info { flex: 1; min-width: 0; }
+  .team-name { font-size: 14px; font-weight: 600; }
+  .team-role { font-size: 12px; color: var(--text2); }
+
+  /* Gear */
+  .gear-item { padding: 10px 0; border-bottom: 0.5px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .gear-item:last-child { border-bottom: none; }
+  .gear-name { font-size: 13px; font-weight: 500; }
+  .gear-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* Metrics */
+  .metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .metric { background: var(--bg); border-radius: 10px; border: 0.5px solid var(--border); padding: 12px; }
+  .metric-val { font-size: 22px; font-weight: 700; color: var(--text); }
+  .metric-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* Sponsor status */
+  .s-prospect { background: var(--gray-pale); color: var(--gray); }
+  .s-contacted { background: var(--amber-pale); color: var(--amber); }
+  .s-interested { background: var(--blue-pale); color: var(--blue); }
+  .s-committed { background: var(--green-pale); color: var(--green); }
+
+  /* Add button */
+  .add-btn {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text2);
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .add-btn:active { background: var(--bg3); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: flex-end; z-index: 100;
+    padding-bottom: var(--safe-bottom);
+  }
+  .modal {
+    background: var(--bg);
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px 20px calc(20px + var(--safe-bottom));
+  }
+  .modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 16px; }
+  .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 16px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px 12px; font-size: 15px;
+    border: 1px solid var(--border2); border-radius: 10px;
+    background: var(--bg2); color: var(--text);
+    appearance: none; -webkit-appearance: none;
+  }
+  .field textarea { resize: none; min-height: 72px; line-height: 1.5; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-save { flex: 1; padding: 13px; background: var(--green); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .btn-cancel { padding: 13px 18px; background: var(--bg3); color: var(--text); border: none; border-radius: 12px; font-size: 15px; cursor: pointer; }
+  .btn-delete { padding: 13px 18px; background: var(--red-pale); color: var(--red); border: none; border-radius: 12px; font-size: 15px; cursor: pointer; }
+
+  /* Intel */
+  .intel-section { margin-bottom: 14px; }
+  .intel-label { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .intel-area { width: 100%; border: 1px solid var(--border2); border-radius: 10px; background: var(--bg2); color: var(--text); padding: 10px 12px; font-size: 14px; line-height: 1.5; resize: none; min-height: 80px; }
+  .save-intel-btn { width: 100%; padding: 13px; background: var(--green); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">Brooks Range 2032</div>
+    <div class="header-sub">First ascents · Arctic Alaska</div>
+  </div>
+  <div class="readiness-badge">
+    <div class="readiness-num" id="globalPct">—</div>
+    <div class="readiness-lbl">readiness</div>
+  </div>
+</div>
+
+<div class="content">
+  <div id="tab-ladder" class="section active"></div>
+  <div id="tab-team" class="section"></div>
+  <div id="tab-gear" class="section"></div>
+  <div id="tab-sponsor" class="section"></div>
+  <div id="tab-intel" class="section"></div>
+</div>
+
+<nav class="tabbar">
+  <button class="tab active" onclick="switchTab('ladder',this)">
+    <svg viewBox="0 0 24 24"><path d="M3 20l5-10 4 6 3-5 6 9"/></svg>
+    Ladder
+  </button>
+  <button class="tab" onclick="switchTab('team',this)">
+    <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75"/><path d="M21 21v-2a4 4 0 00-3-3.87"/></svg>
+    Team
+  </button>
+  <button class="tab" onclick="switchTab('gear',this)">
+    <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+    Gear
+  </button>
+  <button class="tab" onclick="switchTab('sponsor',this)">
+    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    Sponsors
+  </button>
+  <button class="tab" onclick="switchTab('intel',this)">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Intel
+  </button>
+</nav>
+
+<div id="modal" style="display:none" class="modal-overlay"></div>
+
+<script>
+const STORE = 'br2032_pwa_v1';
+
+const DEFAULT = {
+  missions: [
+    {id:'m1',name:'Lurking Fear',year:2025,location:'El Capitan, CA',style:'Big wall solo',status:'active',fitness:70,gear:80,skills:60,notes:'Solo aid systems, hauling practice. The training ground for all wall systems.',gates:'Self-rescue, haul systems, fixed line management'},
+    {id:'m2',name:'Mt. Joy',year:2026,location:'Canadian Rockies',style:'Alpine PD',status:'planning',fitness:0,gear:30,skills:0,notes:'',gates:'Basic alpine movement, crampon work, crevasse rescue'},
+    {id:'m3',name:'Mt. Indefatigable',year:2026,location:'Canadian Rockies',style:'Alpine PD',status:'planning',fitness:0,gear:30,skills:0,notes:'Can be linked with Mt. Joy on same trip.',gates:'Basic alpine, crampon work'},
+    {id:'m4',name:'Forbidden Peak West Ridge',year:2026,location:'North Cascades, WA',style:'Alpine AD',status:'planning',fitness:0,gear:20,skills:0,notes:'',gates:'Rock to 5.6 on alpine terrain, steep snow competency'},
+    {id:'m5',name:'Mt. Shuksan Fisher Chimneys',year:2027,location:'North Cascades, WA',style:'Alpine AD',status:'future',fitness:0,gear:10,skills:0,notes:'',gates:'Mixed terrain competency, navigation in whiteout conditions'},
+    {id:'m6',name:'Tower 1',year:2027,location:'Titcomb Basin, Wind Rivers, WY',style:'Alpine granite',status:'future',fitness:0,gear:10,skills:0,notes:'High-altitude granite stepping stone. Key altitude tolerance test at 11k+.',gates:'Multi-pitch granite to 5.9, altitude tolerance above 11,000ft'},
+    {id:'m7',name:'Mt. Joffre / Northover',year:2028,location:'Canadian Rockies',style:'Alpine AD+',status:'future',fitness:0,gear:10,skills:0,notes:'',gates:'Route-finding on complex glaciated terrain, multi-day commitment'},
+    {id:'m8',name:'Royal Group',year:2029,location:'Canadian Rockies',style:'Alpine D',status:'future',fitness:0,gear:10,skills:0,notes:'Pre-Alaska complexity benchmark. Full team dry run.',gates:'Multi-day alpine, self-sufficient in remote terrain, team coordination'},
+    {id:'m9',name:'Brooks Range First Ascents',year:2032,location:'Arctic Alaska',style:'Expedition',status:'future',fitness:0,gear:0,skills:0,notes:'The objective. 5 Rhode Island veterans on untouched granite.',gates:'All prior objectives complete, full expedition logistics capability'}
+  ],
+  team: [
+    {id:'t1',name:'You',role:'Expedition leader',skills:'Big wall, TFTNA training, HRV-guided periodization, logistics',availability:'Full commitment'},
+    {id:'t2',name:'Member 2',role:'Climber',skills:'',availability:'TBD'},
+    {id:'t3',name:'Member 3',role:'Climber',skills:'',availability:'TBD'},
+    {id:'t4',name:'Member 4',role:'Climber',skills:'',availability:'TBD'},
+    {id:'t5',name:'Member 5',role:'Climber',skills:'',availability:'TBD'}
+  ],
+  gear: [
+    {id:'g1',name:'60m 9.4mm dry rope (×2)',weight:4.2,cost:600,year:2025,objective:'All objectives',acquired:true},
+    {id:'g2',name:'Crevasse rescue kit',weight:1.8,cost:280,year:2026,objective:'Joy / Shuksan',acquired:false},
+    {id:'g3',name:'4-season expedition tent',weight:3.2,cost:900,year:2028,objective:'Royal Group',acquired:false},
+    {id:'g4',name:'Satellite communicator (×2)',weight:0.3,cost:700,year:2028,objective:'Alaska',acquired:false}
+  ],
+  sponsors: [
+    {id:'s1',name:'Example Outdoor Co',contact:'',ask:5000,status:'prospect',notes:'Gear support + cash ask'}
+  ],
+  intel: {research:'',permits:'',logistics:'',notes:''}
+};
+
+let D = DEFAULT;
+try { const s = localStorage.getItem(STORE); if(s) D = JSON.parse(s); } catch(e) {}
+function save() { try { localStorage.setItem(STORE, JSON.stringify(D)); } catch(e){} }
+
+function r(m) { return Math.round((m.fitness + m.gear + m.skills) / 3); }
+function gPct() { return Math.round(D.missions.map(r).reduce((a,b)=>a+b,0)/D.missions.length); }
+function daysLeft() {
+  const t = new Date('2032-06-15'), now = new Date();
+  return Math.max(0, Math.round((t-now)/(86400000)));
+}
+
+function uid() { return '_'+Math.random().toString(36).slice(2,9); }
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  render(name);
+}
+
+function render(tab) {
+  document.getElementById('globalPct').textContent = gPct()+'%';
+  if(tab==='ladder') renderLadder();
+  else if(tab==='team') renderTeam();
+  else if(tab==='gear') renderGear();
+  else if(tab==='sponsor') renderSponsor();
+  else if(tab==='intel') renderIntel();
+}
+
+function sBadge(s) {
+  const cls={future:'badge-future',planning:'badge-planning',active:'badge-active',trained:'badge-trained',complete:'badge-complete'};
+  const lbl={future:'Future',planning:'Planning',active:'Active',trained:'Trained',complete:'Complete'};
+  return `<span class="badge ${cls[s]||'badge-future'}">${lbl[s]||s}</span>`;
+}
+
+function renderLadder() {
+  const el=document.getElementById('tab-ladder');
+  const days=daysLeft();
+  let h=`<div class="countdown">
+    <div class="countdown-num">${days.toLocaleString()}</div>
+    <div class="countdown-label">days to Brooks Range · June 15, 2032</div>
+  </div>`;
+  [...D.missions].sort((a,b)=>a.year-b.year).forEach(m=>{
+    const rd=r(m);
+    h+=`<div class="card">
+      <div class="mission-top">
+        <div>
+          <div class="card-title">${m.name}</div>
+          <div class="card-meta">${m.year} · ${m.location} · ${m.style}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${sBadge(m.status)}
+          <button class="edit-btn" onclick="editMission('${m.id}')">✎</button>
+        </div>
+      </div>
+      <div class="prog-row"><span class="prog-label">Fitness</span><div class="prog-bar"><div class="prog-fill fitness" style="width:${m.fitness}%"></div></div><span class="prog-pct">${m.fitness}%</span></div>
+      <div class="prog-row"><span class="prog-label">Gear</span><div class="prog-bar"><div class="prog-fill gear" style="width:${m.gear}%"></div></div><span class="prog-pct">${m.gear}%</span></div>
+      <div class="prog-row"><span class="prog-label">Skills</span><div class="prog-bar"><div class="prog-fill skills" style="width:${m.skills}%"></div></div><span class="prog-pct">${m.skills}%</span></div>
+      <div class="readiness-row">
+        <div><div class="readiness-sub">Readiness</div><div class="readiness-big">${rd}%</div></div>
+        ${m.gates?`<div class="gates-text">Gates: ${m.gates}</div>`:''}
+      </div>
+      ${m.notes?`<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);font-size:12px;color:var(--text2);line-height:1.5">${m.notes}</div>`:''}
+    </div>`;
+  });
+  h+=`<button class="add-btn" onclick="addMission()"><span style="font-size:18px;line-height:1">+</span> Add objective</button>`;
+  el.innerHTML=h;
+}
+
+function renderTeam() {
+  const el=document.getElementById('tab-team');
+  let h='';
+  D.team.forEach(t=>{
+    const ini=t.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    h+=`<div class="card">
+      <div class="team-row">
+        <div class="avatar">${ini}</div>
+        <div class="team-info">
+          <div class="team-name">${t.name}</div>
+          <div class="team-role">${t.role}</div>
+        </div>
+        <button class="edit-btn" onclick="editTeam('${t.id}')">✎</button>
+      </div>
+      ${t.skills?`<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);font-size:12px;color:var(--text2)">Skills: ${t.skills}</div>`:''}
+      <div style="font-size:12px;color:var(--text2);margin-top:6px">Availability: ${t.availability}</div>
+    </div>`;
+  });
+  h+=`<button class="add-btn" onclick="addTeam()"><span style="font-size:18px">+</span> Add team member</button>`;
+  el.innerHTML=h;
+}
+
+function renderGear() {
+  const el=document.getElementById('tab-gear');
+  const totalCost=D.gear.reduce((a,g)=>a+g.cost,0);
+  const acq=D.gear.filter(g=>g.acquired).length;
+  const totalW=D.gear.reduce((a,g)=>a+g.weight,0).toFixed(1);
+  let h=`<div class="metrics">
+    <div class="metric"><div class="metric-val">${D.gear.length}</div><div class="metric-label">Items</div></div>
+    <div class="metric"><div class="metric-val">${acq}/${D.gear.length}</div><div class="metric-label">Acquired</div></div>
+    <div class="metric"><div class="metric-val">$${totalCost.toLocaleString()}</div><div class="metric-label">Budget</div></div>
+  </div><div class="card">`;
+  D.gear.forEach(g=>{
+    h+=`<div class="gear-item">
+      <div>
+        <div class="gear-name">${g.name}</div>
+        <div class="gear-meta">${g.objective} · ${g.weight}kg · $${g.cost} · needed ${g.year}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="badge ${g.acquired?'badge-complete':'badge-future'}">${g.acquired?'Got it':'Needed'}</span>
+        <button class="edit-btn" onclick="editGear('${g.id}')">✎</button>
+      </div>
+    </div>`;
+  });
+  h+=`</div><button class="add-btn" onclick="addGear()"><span style="font-size:18px">+</span> Add gear item</button>`;
+  el.innerHTML=h;
+}
+
+function renderSponsor() {
+  const el=document.getElementById('tab-sponsor');
+  const committed=D.sponsors.filter(s=>s.status==='committed').reduce((a,s)=>a+s.ask,0);
+  const pipeline=D.sponsors.reduce((a,s)=>a+s.ask,0);
+  let h=`<div class="metrics">
+    <div class="metric"><div class="metric-val">${D.sponsors.length}</div><div class="metric-label">Prospects</div></div>
+    <div class="metric"><div class="metric-val">$${committed.toLocaleString()}</div><div class="metric-label">Committed</div></div>
+    <div class="metric"><div class="metric-val">$${pipeline.toLocaleString()}</div><div class="metric-label">Pipeline</div></div>
+  </div>`;
+  D.sponsors.forEach(s=>{
+    const sc={prospect:'s-prospect',contacted:'s-contacted',interested:'s-interested',committed:'s-committed'}[s.status]||'s-prospect';
+    h+=`<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="card-title">${s.name}</div>
+          <div class="card-meta">${s.contact||'No contact yet'} · Ask: $${s.ask.toLocaleString()}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge ${sc}">${s.status.charAt(0).toUpperCase()+s.status.slice(1)}</span>
+          <button class="edit-btn" onclick="editSponsor('${s.id}')">✎</button>
+        </div>
+      </div>
+      ${s.notes?`<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);font-size:12px;color:var(--text2)">${s.notes}</div>`:''}
+    </div>`;
+  });
+  h+=`<button class="add-btn" onclick="addSponsor()"><span style="font-size:18px">+</span> Add sponsor</button>`;
+  el.innerHTML=h;
+}
+
+function renderIntel() {
+  document.getElementById('tab-intel').innerHTML=`
+    <div class="card">
+      <div class="intel-section">
+        <div class="intel-label">Route & research notes</div>
+        <textarea class="intel-area" id="i-research" rows="4">${D.intel.research||''}</textarea>
+      </div>
+      <div class="intel-section">
+        <div class="intel-label">Permit status</div>
+        <textarea class="intel-area" id="i-permits" rows="2">${D.intel.permits||''}</textarea>
+      </div>
+      <div class="intel-section">
+        <div class="intel-label">Logistics — flights, resupply, basecamp</div>
+        <textarea class="intel-area" id="i-logistics" rows="3">${D.intel.logistics||''}</textarea>
+      </div>
+      <div class="intel-section">
+        <div class="intel-label">General notes</div>
+        <textarea class="intel-area" id="i-notes" rows="3">${D.intel.notes||''}</textarea>
+      </div>
+      <button class="save-intel-btn" id="intel-save-btn" onclick="saveIntel()">Save notes</button>
+    </div>`;
+}
+
+function saveIntel() {
+  D.intel.research=document.getElementById('i-research').value;
+  D.intel.permits=document.getElementById('i-permits').value;
+  D.intel.logistics=document.getElementById('i-logistics').value;
+  D.intel.notes=document.getElementById('i-notes').value;
+  save();
+  const btn=document.getElementById('intel-save-btn');
+  btn.textContent='Saved ✓'; btn.style.background='#534AB7';
+  setTimeout(()=>{ btn.textContent='Save notes'; btn.style.background=''; },2000);
+}
+
+// Modal helpers
+function openModal(html) {
+  const m=document.getElementById('modal');
+  m.innerHTML=`<div class="modal"><div class="modal-handle"></div>${html}</div>`;
+  m.style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function closeModal() {
+  document.getElementById('modal').style.display='none';
+  document.body.style.overflow='';
+}
+
+// Mission CRUD
+function editMission(id) {
+  const m=D.missions.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-title">${m.name}</div>
+    <div class="field"><label>Name</label><input id="f-name" value="${m.name}"></div>
+    <div class="field"><label>Target year</label><input id="f-year" type="number" value="${m.year}"></div>
+    <div class="field"><label>Location</label><input id="f-loc" value="${m.location}"></div>
+    <div class="field"><label>Style</label><input id="f-style" value="${m.style}"></div>
+    <div class="field"><label>Status</label>
+      <select id="f-status">
+        <option value="future" ${m.status==='future'?'selected':''}>Future</option>
+        <option value="planning" ${m.status==='planning'?'selected':''}>Planning</option>
+        <option value="active" ${m.status==='active'?'selected':''}>Active</option>
+        <option value="trained" ${m.status==='trained'?'selected':''}>Trained</option>
+        <option value="complete" ${m.status==='complete'?'selected':''}>Complete</option>
+      </select>
+    </div>
+    <div class="field"><label>Fitness readiness (0–100)</label><input id="f-fit" type="number" min="0" max="100" value="${m.fitness}"></div>
+    <div class="field"><label>Gear readiness (0–100)</label><input id="f-gear" type="number" min="0" max="100" value="${m.gear}"></div>
+    <div class="field"><label>Skills readiness (0–100)</label><input id="f-skills" type="number" min="0" max="100" value="${m.skills}"></div>
+    <div class="field"><label>Gate criteria</label><textarea id="f-gates">${m.gates||''}</textarea></div>
+    <div class="field"><label>Notes</label><textarea id="f-notes">${m.notes||''}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn-delete" onclick="delMission('${id}')">Delete</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveMission('${id}')">Save</button>
+    </div>`);
+}
+function saveMission(id) {
+  const m=D.missions.find(x=>x.id===id);
+  m.name=document.getElementById('f-name').value;
+  m.year=parseInt(document.getElementById('f-year').value)||m.year;
+  m.location=document.getElementById('f-loc').value;
+  m.style=document.getElementById('f-style').value;
+  m.status=document.getElementById('f-status').value;
+  m.fitness=Math.min(100,Math.max(0,parseInt(document.getElementById('f-fit').value)||0));
+  m.gear=Math.min(100,Math.max(0,parseInt(document.getElementById('f-gear').value)||0));
+  m.skills=Math.min(100,Math.max(0,parseInt(document.getElementById('f-skills').value)||0));
+  m.gates=document.getElementById('f-gates').value;
+  m.notes=document.getElementById('f-notes').value;
+  save(); closeModal(); render('ladder');
+}
+function delMission(id) {
+  if(!confirm('Delete this objective?')) return;
+  D.missions=D.missions.filter(x=>x.id!==id);
+  save(); closeModal(); render('ladder');
+}
+function addMission() {
+  const m={id:uid(),name:'New objective',year:new Date().getFullYear()+1,location:'',style:'Alpine',status:'future',fitness:0,gear:0,skills:0,notes:'',gates:''};
+  D.missions.push(m); save(); editMission(m.id);
+}
+
+// Team CRUD
+function editTeam(id) {
+  const t=D.team.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-title">Edit member</div>
+    <div class="field"><label>Name</label><input id="t-name" value="${t.name}"></div>
+    <div class="field"><label>Role</label><input id="t-role" value="${t.role}"></div>
+    <div class="field"><label>Skills</label><textarea id="t-skills">${t.skills}</textarea></div>
+    <div class="field"><label>Availability</label><input id="t-avail" value="${t.availability}"></div>
+    <div class="modal-actions">
+      <button class="btn-delete" onclick="delTeam('${id}')">Remove</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveTeam('${id}')">Save</button>
+    </div>`);
+}
+function saveTeam(id) {
+  const t=D.team.find(x=>x.id===id);
+  t.name=document.getElementById('t-name').value;
+  t.role=document.getElementById('t-role').value;
+  t.skills=document.getElementById('t-skills').value;
+  t.availability=document.getElementById('t-avail').value;
+  save(); closeModal(); render('team');
+}
+function delTeam(id) {
+  D.team=D.team.filter(x=>x.id!==id);
+  save(); closeModal(); render('team');
+}
+function addTeam() {
+  const t={id:uid(),name:'New member',role:'Climber',skills:'',availability:'TBD'};
+  D.team.push(t); save(); editTeam(t.id);
+}
+
+// Gear CRUD
+function editGear(id) {
+  const g=D.gear.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-title">Edit gear item</div>
+    <div class="field"><label>Item name</label><input id="g-name" value="${g.name}"></div>
+    <div class="field"><label>Weight (kg)</label><input id="g-weight" type="number" step="0.1" value="${g.weight}"></div>
+    <div class="field"><label>Cost ($)</label><input id="g-cost" type="number" value="${g.cost}"></div>
+    <div class="field"><label>Needed by year</label><input id="g-year" type="number" value="${g.year}"></div>
+    <div class="field"><label>Objective</label><input id="g-obj" value="${g.objective}"></div>
+    <div class="field"><label>Acquired?</label>
+      <select id="g-acq">
+        <option value="true" ${g.acquired?'selected':''}>Yes — acquired</option>
+        <option value="false" ${!g.acquired?'selected':''}>No — still needed</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-delete" onclick="delGear('${id}')">Delete</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveGear('${id}')">Save</button>
+    </div>`);
+}
+function saveGear(id) {
+  const g=D.gear.find(x=>x.id===id);
+  g.name=document.getElementById('g-name').value;
+  g.weight=parseFloat(document.getElementById('g-weight').value)||0;
+  g.cost=parseInt(document.getElementById('g-cost').value)||0;
+  g.year=parseInt(document.getElementById('g-year').value)||g.year;
+  g.objective=document.getElementById('g-obj').value;
+  g.acquired=document.getElementById('g-acq').value==='true';
+  save(); closeModal(); render('gear');
+}
+function delGear(id) {
+  D.gear=D.gear.filter(x=>x.id!==id);
+  save(); closeModal(); render('gear');
+}
+function addGear() {
+  const g={id:uid(),name:'New item',weight:0,cost:0,year:2026,objective:'All objectives',acquired:false};
+  D.gear.push(g); save(); editGear(g.id);
+}
+
+// Sponsor CRUD
+function editSponsor(id) {
+  const s=D.sponsors.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-title">Edit sponsor</div>
+    <div class="field"><label>Company / name</label><input id="sp-name" value="${s.name}"></div>
+    <div class="field"><label>Contact name or email</label><input id="sp-contact" value="${s.contact||''}"></div>
+    <div class="field"><label>Ask amount ($)</label><input id="sp-ask" type="number" value="${s.ask}"></div>
+    <div class="field"><label>Status</label>
+      <select id="sp-status">
+        <option value="prospect" ${s.status==='prospect'?'selected':''}>Prospect</option>
+        <option value="contacted" ${s.status==='contacted'?'selected':''}>Contacted</option>
+        <option value="interested" ${s.status==='interested'?'selected':''}>Interested</option>
+        <option value="committed" ${s.status==='committed'?'selected':''}>Committed</option>
+      </select>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="sp-notes">${s.notes||''}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn-delete" onclick="delSponsor('${id}')">Delete</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveSponsor('${id}')">Save</button>
+    </div>`);
+}
+function saveSponsor(id) {
+  const s=D.sponsors.find(x=>x.id===id);
+  s.name=document.getElementById('sp-name').value;
+  s.contact=document.getElementById('sp-contact').value;
+  s.ask=parseInt(document.getElementById('sp-ask').value)||0;
+  s.status=document.getElementById('sp-status').value;
+  s.notes=document.getElementById('sp-notes').value;
+  save(); closeModal(); render('sponsor');
+}
+function delSponsor(id) {
+  D.sponsors=D.sponsors.filter(x=>x.id!==id);
+  save(); closeModal(); render('sponsor');
+}
+function addSponsor() {
+  const s={id:uid(),name:'New prospect',contact:'',ask:0,status:'prospect',notes:''};
+  D.sponsors.push(s); save(); editSponsor(s.id);
+}
+
+// Service worker
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+
+// Init
+render('ladder');
+</script>
+</body>
+</html>
